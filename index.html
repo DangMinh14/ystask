@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Ystask: instant tools plus habit, expense and job application trackers in one place." />
+    <title>Ystask: tools and trackers for your day</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Resolve the theme preference (system | light | dark) before first
+      // paint to avoid a flash. "system" follows prefers-color-scheme live.
+      (function () {
+        try {
+          var pref = localStorage.getItem('ystask-theme');
+          if (pref !== 'light' && pref !== 'dark') pref = 'system';
+          var media = window.matchMedia('(prefers-color-scheme: dark)');
+          var apply = function () {
+            var resolved = pref === 'system' ? (media.matches ? 'dark' : 'light') : pref;
+            document.documentElement.setAttribute('data-theme', resolved);
+          };
+          apply();
+          media.addEventListener('change', function () {
+            if ((localStorage.getItem('ystask-theme') || 'system') === 'system') apply();
+          });
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

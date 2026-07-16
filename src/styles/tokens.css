@@ -1,0 +1,125 @@
+/*
+ * Ystask design tokens: neo-brutalist theme.
+ * Cream paper background, solid ink borders, hard offset shadows, one loud
+ * orange accent with blue as the secondary voice. Light theme on :root,
+ * dark theme via [data-theme='dark'] (the boot script resolves "system").
+ */
+:root {
+  /* Typography */
+  --font-sans: 'Space Grotesk', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Consolas', monospace;
+
+  /* Spacing scale (px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 56px;
+  --space-11: 64px;
+  --space-12: 88px;
+
+  /* Radii: brutal = tight corners */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Z-index scale */
+  --z-header: 100;
+  --z-drawer: 400;
+  --z-dropdown: 1200;
+  --z-modal: 2000;
+  --z-toast: 3000;
+
+  /* Light theme colors */
+  --background-primary: #fdf6ec;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-solid: #ffffff;
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-faint: #79716b;
+  --accent-color: #ea580c;
+  --accent-strong: #c2410c;
+  --accent-soft: rgba(234, 88, 12, 0.12);
+  --accent-contrast: #1c1917;
+  --border-subtle: rgba(28, 25, 23, 0.14);
+  --border-strong: #1c1917;
+
+  /* Secondary voice */
+  --color-blue: #2563eb;
+  --color-blue-soft: rgba(37, 99, 235, 0.1);
+
+  /* Status colors */
+  --color-danger: #dc2626;
+  --color-danger-soft: rgba(220, 38, 38, 0.1);
+  --color-warning: #b45309;
+  --color-warning-soft: rgba(180, 83, 9, 0.12);
+  --color-success: #15803d;
+  --color-success-soft: rgba(21, 128, 61, 0.12);
+  --color-info: #2563eb;
+  --color-info-soft: rgba(37, 99, 235, 0.1);
+
+  /* Brutal effects: hard offset shadows, no blur */
+  --shadow-card: 4px 4px 0 0 var(--border-strong);
+  --shadow-card-hover: 6px 6px 0 0 var(--border-strong);
+  --shadow-button: 3px 3px 0 0 var(--border-strong);
+  --shadow-pop: 8px 8px 0 0 var(--border-strong);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.5);
+  --scrim: rgba(28, 25, 23, 0.55);
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --background-primary: #16130f;
+  --surface-card: #211c16;
+  --surface-elevated: #262019;
+  --surface-solid: #211c16;
+  --text-primary: #f4ede2;
+  --text-secondary: #b3a898;
+  --text-faint: #8c8274;
+  --accent-color: #fb923c;
+  --accent-strong: #fdba74;
+  --accent-soft: rgba(251, 146, 60, 0.14);
+  --accent-contrast: #1c1917;
+  --border-subtle: rgba(244, 237, 226, 0.16);
+  --border-strong: #f4ede2;
+
+  --color-blue: #60a5fa;
+  --color-blue-soft: rgba(96, 165, 250, 0.12);
+
+  --color-danger: #f87171;
+  --color-danger-soft: rgba(248, 113, 113, 0.14);
+  --color-warning: #fbbf24;
+  --color-warning-soft: rgba(251, 191, 36, 0.14);
+  --color-success: #4ade80;
+  --color-success-soft: rgba(74, 222, 128, 0.14);
+  --color-info: #60a5fa;
+  --color-info-soft: rgba(96, 165, 250, 0.12);
+
+  /* Shadows stay pitch black so panels punch off the warm dark ground */
+  --shadow-card: 4px 4px 0 0 #000000;
+  --shadow-card-hover: 6px 6px 0 0 #000000;
+  --shadow-button: 3px 3px 0 0 #000000;
+  --shadow-pop: 8px 8px 0 0 #000000;
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.55);
+  --scrim: rgba(0, 0, 0, 0.65);
+
+  color-scheme: dark;
+}
