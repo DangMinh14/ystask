@@ -44,6 +44,21 @@ const THEMES: Theme[] = [
 const themeId = ref('brutalist')
 const activeTheme = computed(() => THEMES.find((t) => t.id === themeId.value) ?? THEMES[0]!)
 
+/* Spin speed: more turns + shorter time = faster; fewer turns + longer time = slower. */
+interface Speed {
+  id: string
+  label: string
+  turns: number
+  duration: number
+}
+const SPEEDS: Speed[] = [
+  { id: 'slow', label: 'Slow', turns: 5, duration: 8500 },
+  { id: 'normal', label: 'Normal', turns: 7, duration: 6000 },
+  { id: 'fast', label: 'Fast', turns: 10, duration: 3600 },
+]
+const speedId = ref('normal')
+const activeSpeed = computed(() => SPEEDS.find((s) => s.id === speedId.value) ?? SPEEDS[1]!)
+
 /* Winner history, newest first. */
 interface HistoryEntry {
   name: string
@@ -285,6 +300,13 @@ function confettiFrame(now: number) {
   confettiRaf = requestAnimationFrame(confettiFrame)
 }
 
+const TWO_PI = Math.PI * 2
+/* Which slice sits under the top pointer (-PI/2) for a given wheel rotation. */
+function sliceUnderPointer(rot: number, n: number): number {
+  const slice = TWO_PI / n
+  return Math.floor(((((-Math.PI / 2 - rot) % TWO_PI) + TWO_PI) % TWO_PI) / slice) % n
+}
+
 function spin() {
   const n = entries.value.length
   if (spinning.value || n < 2) return
@@ -292,31 +314,35 @@ function spin() {
   spinning.value = true
   winner.value = ''
 
-  // Pick the winning index with crypto randomness, then animate to it.
-  const buf = new Uint32Array(1)
+  // Pick the winner with crypto randomness, then land the pointer at a random
+  // spot *inside* that slice (inner 76%, never dead-center) so the stop looks
+  // physical instead of always snapping to the middle.
+  const buf = new Uint32Array(2)
   crypto.getRandomValues(buf)
   const winIndex = buf[0]! % n
 
-  const slice = (Math.PI * 2) / n
-  // The pointer sits at angle -PI/2 (top). Land the middle of the winning slice under it.
-  const targetAngle = -Math.PI / 2 - (winIndex * slice + slice / 2)
-  const current = rotation.value % (Math.PI * 2)
-  const spins = 7 * Math.PI * 2 // 7 full turns
-  const delta = spins + ((targetAngle - current) % (Math.PI * 2))
+  const slice = TWO_PI / n
+  const offset = slice * 0.12 + (buf[1]! / 0xffffffff) * slice * 0.76
+  // Pointer at -PI/2 should sit at `offset` into the winning slice.
+  const targetAngle = -Math.PI / 2 - (winIndex * slice + offset)
+  const current = rotation.value % TWO_PI
+  const spins = activeSpeed.value.turns * TWO_PI
+  const delta = spins + (((targetAngle - current) % TWO_PI) + TWO_PI) % TWO_PI
   const startRotation = rotation.value
-  const duration = 6000
+  const duration = activeSpeed.value.duration
   const startTime = performance.now()
   let lastTickSlice = -1
 
   function frame(now: number) {
     const t = Math.min((now - startTime) / duration, 1)
-    // ease-in-out (slow -> fast -> slow) so the wheel ramps up and eases down.
-    const eased = t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2
+    // Slow -> fast -> slow, with a long sextic tail so the final stop drags out
+    // for tension before it settles.
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 6) / 2
     rotation.value = startRotation + delta * eased
     draw()
 
-    // Tick when a new slice crosses the pointer.
-    const pointerSlice = Math.floor((((-Math.PI / 2 - rotation.value) % (Math.PI * 2)) + Math.PI * 2) / slice) % n
+    // Tick when a new slice crosses the pointer (ticks naturally space out as it slows).
+    const pointerSlice = sliceUnderPointer(rotation.value, n)
     if (pointerSlice !== lastTickSlice) {
       lastTickSlice = pointerSlice
       playTick()
@@ -326,8 +352,10 @@ function spin() {
       requestAnimationFrame(frame)
     } else {
       spinning.value = false
-      winner.value = entries.value[winIndex]!
-      winnerColor.value = sliceColor(winIndex, n)
+      // Read the result from where the pointer actually landed.
+      const landed = sliceUnderPointer(rotation.value, n)
+      winner.value = entries.value[landed]!
+      winnerColor.value = sliceColor(landed, n)
       resultOpen.value = true
       history.value.unshift({
         name: winner.value,
@@ -502,6 +530,24 @@ onBeforeUnmount(() => {
             {{ t.label }}
           </button>
         </div>
+
+        <label class="mt-1 text-sm font-medium text-ink">Spin speed</label>
+        <div class="flex overflow-hidden rounded-sm border-2 border-line-strong">
+          <button
+            v-for="(s, i) in SPEEDS"
+            :key="s.id"
+            type="button"
+            class="press flex-1 px-3 py-2 text-sm font-medium"
+            :class="[
+              speedId === s.id ? 'bg-accent text-on-accent' : 'bg-solid text-ink-mid hover:bg-accent-soft',
+              i > 0 ? 'border-l-2 border-line-strong' : '',
+            ]"
+            :aria-pressed="speedId === s.id"
+            @click="speedId = s.id"
+          >
+            {{ s.label }}
+          </button>
+        </div>
       </div>
 
       <!-- Winner history -->
@@ -544,24 +590,30 @@ onBeforeUnmount(() => {
         >
           <PartyPopper class="size-7" aria-hidden="true" />
         </div>
-        <p class="winner-pop max-w-full break-words text-3xl font-bold" :style="{ color: winnerColor }" aria-live="assertive">
-          {{ winner }}
-        </p>
+        <!-- Winner name on a chip tinted to the slice color it landed on, so the
+             color reads clearly while text contrast stays guaranteed. -->
+        <span
+          class="winner-pop inline-flex max-w-full items-center gap-2 rounded-sm border-2 border-line-strong px-4 py-2 shadow-button"
+          :style="{ background: winnerColor, color: readableText(winnerColor || '#ea580c') }"
+          aria-live="assertive"
+        >
+          <span class="break-words text-3xl font-bold leading-tight">{{ winner }}</span>
+        </span>
         <p class="text-sm text-ink-mid">The wheel has spoken.</p>
       </div>
       <template #footer>
-        <div class="flex items-center justify-between gap-2">
-          <UiButton variant="ghost" @click="removeWinner">
-            <Trash2 class="size-4" aria-hidden="true" />
-            Remove option
-          </UiButton>
+        <div class="flex flex-col gap-3">
           <div class="flex gap-2">
-            <UiButton variant="secondary" @click="resultOpen = false">Close</UiButton>
-            <UiButton :disabled="entries.length < 2" @click="spinAgain">
+            <UiButton variant="secondary" block class="whitespace-nowrap" @click="resultOpen = false">Close</UiButton>
+            <UiButton :disabled="entries.length < 2" block class="whitespace-nowrap" @click="spinAgain">
               <Play class="size-4" aria-hidden="true" />
               Spin again
             </UiButton>
           </div>
+          <UiButton variant="danger" block class="whitespace-nowrap" @click="removeWinner">
+            <Trash2 class="size-4" aria-hidden="true" />
+            Remove option
+          </UiButton>
         </div>
       </template>
     </UiModal>
