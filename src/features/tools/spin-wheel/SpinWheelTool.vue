@@ -24,7 +24,7 @@ const resultOpen = ref(false)
 const rotation = ref(0)
 const soundOn = ref(true)
 
-const SIZE = 320
+const SIZE = 440
 
 /* Color themes. Each is a fixed palette; "rainbow" is generated per-slice (RGB). */
 interface Theme {
@@ -144,7 +144,7 @@ function draw() {
 
   // Hub ring (the actual button sits on top as a DOM element)
   ctx.beginPath()
-  ctx.arc(center, center, 30, 0, Math.PI * 2)
+  ctx.arc(center, center, 40, 0, Math.PI * 2)
   ctx.fillStyle = '#ffffff'
   ctx.fill()
   ctx.strokeStyle = '#1c1917'
@@ -392,7 +392,53 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-2">
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+    <!-- Wheel: the large, centered focal point -->
+    <div class="surface flex flex-col items-center justify-center gap-5 p-6 lg:p-8">
+      <div class="relative w-full max-w-[min(100%,520px)]">
+        <!-- Pointer -->
+        <div
+          class="absolute -top-1.5 left-1/2 z-10 -translate-x-1/2"
+          aria-hidden="true"
+          style="width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 26px solid var(--accent-color)"
+        />
+        <canvas ref="canvas" :width="SIZE" :height="SIZE" class="mx-auto block h-auto w-full max-w-full" role="img" aria-label="Spin wheel" />
+
+        <!-- Center hub button: click to spin. Centering lives on the wrapper so the
+             button's own hover/press transforms never fight the -50% offset. -->
+        <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <button
+            type="button"
+            class="hub pointer-events-auto flex size-20 flex-col items-center justify-center rounded-full border-2 border-line-strong bg-accent text-on-accent font-bold shadow-button disabled:opacity-50 disabled:pointer-events-none"
+            :disabled="entries.length < 2 || spinning"
+            :aria-label="spinning ? 'Spinning' : 'Spin the wheel'"
+            @click="spin"
+          >
+            <Play class="size-6" aria-hidden="true" :class="{ 'animate-pulse': spinning }" />
+            <span class="text-xs leading-none">{{ spinning ? '…' : 'SPIN' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <p class="text-sm text-ink-faint">Click the center of the wheel to spin.</p>
+
+      <div class="flex w-full flex-wrap justify-center gap-2">
+        <UiButton :disabled="entries.length < 2" :loading="spinning" @click="spin">
+          <Play v-if="!spinning" class="size-4" aria-hidden="true" />
+          {{ spinning ? 'Spinning…' : 'Spin' }}
+        </UiButton>
+        <UiButton v-if="winner" variant="secondary" @click="removeWinner">
+          <Trash2 class="size-4" aria-hidden="true" />
+          Remove this result
+        </UiButton>
+        <UiButton variant="ghost" :disabled="spinning" @click="reset">
+          <RotateCcw class="size-4" aria-hidden="true" />
+          Reset
+        </UiButton>
+      </div>
+    </div>
+
+    <!-- Right column: options, theme, history -->
     <div class="flex flex-col gap-6">
       <div class="surface flex flex-col gap-3 p-5">
         <label for="wheel-input" class="text-sm font-medium text-ink">
@@ -422,7 +468,7 @@ onBeforeUnmount(() => {
       <!-- Theme + sound controls -->
       <div class="surface flex flex-col gap-3 p-5">
         <div class="flex items-center justify-between gap-3">
-          <label for="wheel-theme" class="text-sm font-medium text-ink">Wheel color</label>
+          <label class="text-sm font-medium text-ink">Wheel color</label>
           <button
             type="button"
             class="press flex items-center gap-1.5 rounded-sm border-2 border-line-strong px-3 py-1.5 text-sm font-medium text-ink hover:bg-accent-soft"
@@ -457,51 +503,10 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </div>
-    </div>
-
-    <div class="surface flex flex-col items-center gap-5 p-6">
-      <div class="relative">
-        <!-- Pointer -->
-        <div
-          class="absolute -top-1 left-1/2 z-10 -translate-x-1/2"
-          aria-hidden="true"
-          style="width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--accent-color)"
-        />
-        <canvas ref="canvas" :width="SIZE" :height="SIZE" class="max-w-full" role="img" aria-label="Spin wheel" />
-
-        <!-- Center hub button: click to spin -->
-        <button
-          type="button"
-          class="hub press absolute left-1/2 top-1/2 flex size-16 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-2 border-line-strong bg-accent text-on-accent font-bold shadow-button disabled:opacity-50 disabled:pointer-events-none"
-          :disabled="entries.length < 2 || spinning"
-          :aria-label="spinning ? 'Spinning' : 'Spin the wheel'"
-          @click="spin"
-        >
-          <Play class="size-5" aria-hidden="true" :class="{ 'animate-pulse': spinning }" />
-          <span class="text-[10px] leading-none">{{ spinning ? '…' : 'SPIN' }}</span>
-        </button>
-      </div>
-
-      <p class="text-sm text-ink-faint">Click the center of the wheel to spin.</p>
-
-      <div class="flex w-full flex-wrap justify-center gap-2">
-        <UiButton :disabled="entries.length < 2" :loading="spinning" @click="spin">
-          <Play v-if="!spinning" class="size-4" aria-hidden="true" />
-          {{ spinning ? 'Spinning…' : 'Spin' }}
-        </UiButton>
-        <UiButton v-if="winner" variant="secondary" @click="removeWinner">
-          <Trash2 class="size-4" aria-hidden="true" />
-          Remove this result
-        </UiButton>
-        <UiButton variant="ghost" :disabled="spinning" @click="reset">
-          <RotateCcw class="size-4" aria-hidden="true" />
-          Reset
-        </UiButton>
-      </div>
 
       <!-- Winner history -->
-      <div class="w-full border-t-2 border-line-subtle pt-4">
-        <div class="mb-2 flex items-center justify-between gap-2">
+      <div class="surface flex flex-col gap-2 p-5">
+        <div class="flex items-center justify-between gap-2">
           <p class="flex items-center gap-1.5 text-sm font-medium text-ink">
             <History class="size-4" aria-hidden="true" />
             History
@@ -516,7 +521,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
         <p v-if="!history.length" class="text-sm text-ink-faint">No spins yet.</p>
-        <ol v-else class="flex max-h-40 flex-col gap-1 overflow-y-auto">
+        <ol v-else class="flex max-h-48 flex-col gap-1 overflow-y-auto">
           <li
             v-for="(h, i) in history"
             :key="i"
@@ -577,7 +582,10 @@ onBeforeUnmount(() => {
   transition: transform var(--motion-fast) var(--ease-standard);
 }
 .hub:not(:disabled):hover {
-  transform: translate(-50%, -50%) scale(1.06);
+  transform: scale(1.06);
+}
+.hub:not(:disabled):active {
+  transform: scale(0.96);
 }
 .winner-pop {
   animation: winner-pop 0.45s var(--ease-snap) both;
